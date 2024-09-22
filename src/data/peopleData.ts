@@ -1,4 +1,16 @@
-const data = [
+export interface Person {
+  name: string;
+  lat: string | null;
+  long: string | null;
+  googlemapurl: string | null;
+  town: string | null;
+  deathdate: string | null;
+  age: number | null;
+  dob: string | null;
+  misc: string | null;
+}
+
+const people: Person[] = [
   {
     name: "tommie cook",
     lat: "54°0.256'N",
@@ -232,4 +244,4 @@ const data = [
   },
 ];
 
-export default data;
+export default people;

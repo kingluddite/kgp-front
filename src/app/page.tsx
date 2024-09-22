@@ -1,16 +1,15 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
-import data from "../data/peopleData";
+import people, { Person } from "../data/peopleData";
 
 export default function HomePage() {
   // Use imported data for people
-  const people = data;
-  const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [results, setResults] = useState<Person[]>([]);
 
   // Handle search input change
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
 
     if (e.target.value === "") {
@@ -78,7 +77,9 @@ export default function HomePage() {
                   </div>
                 </div>
               ))
-            : searchTerm && <p>No results found for "{searchTerm}"</p>}
+            : searchTerm && (
+                <p>No results found for &quot;{searchTerm}&quot;</p>
+              )}
         </div>
       </div>
     </div>
@@ -86,7 +87,7 @@ export default function HomePage() {
 }
 
 // Custom styles for the header and image
-const styles = {
+const styles: Record<string, React.CSSProperties> = {
   header: {
     backgroundColor: "black",
     display: "flex",
