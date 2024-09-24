@@ -1,4 +1,5 @@
 export interface Person {
+  id: number;
   name: string;
   lat: string | null;
   long: string | null;
@@ -8,13 +9,32 @@ export interface Person {
   age: number | null;
   dob: string | null;
   misc: string | null;
+  slug: string;
 }
 
-const people: Person[] = [
+// Function to convert a string to kebab-case
+const toKebabCase = (str: string) => {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric characters with hyphens
+    .replace(/(^-|-$)+/g, ""); // Remove any leading or trailing hyphens
+};
+
+// Function to extract first and last names
+const getFirstAndLastName = (fullName: string) => {
+  const nameParts = fullName.split(" ");
+  return {
+    firstName: nameParts[0],
+    lastName: nameParts[nameParts.length - 1], // Assuming the last part of the name is the last name
+  };
+};
+
+// Define the people data
+const peopleData: Omit<Person, "id" | "slug">[] = [
   {
     name: "tommie cook",
-    lat: "54°0.256'N",
-    long: "8°57.83'W",
+    lat: "54.000071", // Leaflet-readable decimal format
+    long: "-8.964408",
     googlemapurl: null,
     town: "knocks",
     deathdate: "06/01/1993",
@@ -24,8 +44,8 @@ const people: Person[] = [
   },
   {
     name: "bae cook",
-    lat: "54°0.256'N",
-    long: "8°57.83'W",
+    lat: "54.00408",
+    long: "-8.96447",
     googlemapurl: null,
     town: "knocks",
     deathdate: "12/06/1996",
@@ -101,8 +121,8 @@ const people: Person[] = [
   },
   {
     name: "philip howley",
-    lat: "54°0.2450'N",
-    long: "8°57.8670'W",
+    lat: "54.00408",
+    long: "-8.96447",
     googlemapurl: "http://maps.google.com/maps?q=54.00408%2C-8.96447",
     town: "killasser",
     deathdate: null,
@@ -123,8 +143,8 @@ const people: Person[] = [
   },
   {
     name: "andy gallagher",
-    lat: "54°0.2550'N",
-    long: "8°57.8330'W",
+    lat: "54.00425",
+    long: "-8.96388",
     googlemapurl: "http://maps.google.com/maps?q=54.00425%2C-8.96388",
     town: null,
     deathdate: null,
@@ -145,8 +165,8 @@ const people: Person[] = [
   },
   {
     name: "may tuffy",
-    lat: "54°0.2570'N",
-    long: "8°57.8360'W",
+    lat: "54.00429",
+    long: "-8.96394",
     googlemapurl: "http://maps.google.com/maps?q=54.00429%2C-8.96394",
     town: "Doonmaynor",
     deathdate: "07/05/1984",
@@ -156,8 +176,8 @@ const people: Person[] = [
   },
   {
     name: "thomas tuffy",
-    lat: "54°0.2570'N",
-    long: "8°57.8360'W",
+    lat: "54.00429",
+    long: "-8.96394",
     googlemapurl: "http://maps.google.com/maps?q=54.00429%2C-8.96394",
     town: "Doonmaynor",
     deathdate: "22/01/1995",
@@ -167,8 +187,8 @@ const people: Person[] = [
   },
   {
     name: "eamon doherty",
-    lat: "54°0.2580'N",
-    long: "8°57.8370'W",
+    lat: "54.00431",
+    long: "-8.96396",
     googlemapurl: "http://maps.google.com/maps?q=54.00431%2C-8.96396",
     town: null,
     deathdate: null,
@@ -243,5 +263,17 @@ const people: Person[] = [
     misc: null,
   },
 ];
+
+// Add an incrementing ID and generate slugs using first name, last name, and id
+const people: Person[] = peopleData.map((person, index) => {
+  const id = index + 1;
+  const { firstName, lastName } = getFirstAndLastName(person.name);
+  const slug = `${toKebabCase(firstName)}-${toKebabCase(lastName)}-${id}`;
+  return {
+    ...person,
+    id,
+    slug,
+  };
+});
 
 export default people;

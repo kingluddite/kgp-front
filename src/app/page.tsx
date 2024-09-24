@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link"; // Import the Link component from Next.js
 import people, { Person } from "../data/peopleData";
 
 export default function HomePage() {
@@ -64,17 +65,19 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Render Results as Cards (optional based on your data) */}
+        {/* Render Results as Cards */}
         <div className="row">
           {results.length > 0
             ? results.map((person, index) => (
                 <div className="col-md-4" key={index}>
-                  <div className="card mb-4">
-                    <div className="card-body">
-                      <h5 className="card-title">{person.name}</h5>
-                      <p className="card-text">More details...</p>
+                  <Link href={`/person/${person.slug}`} passHref>
+                    <div className="card mb-4" style={{ cursor: "pointer" }}>
+                      <div className="card-body">
+                        <h5 className="card-title">{person.name}</h5>
+                        <p className="card-text">Click to view more details</p>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
               ))
             : searchTerm && (
