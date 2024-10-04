@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import "leaflet/dist/leaflet.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 // import "bootstrap/dist/js/bootstrap.bundle.min";
 
