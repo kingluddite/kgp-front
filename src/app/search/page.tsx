@@ -111,8 +111,8 @@ export default function SearchPage() {
         if (validGraves.length > 0) {
           const bounds = L.latLngBounds(
             validGraves.map((grave) => [
-              parseFloat(grave.lat),
-              parseFloat(grave.lng),
+              parseFloat(grave.lat ?? "0"),
+              parseFloat(grave.lng ?? "0"),
             ]),
           );
           map.fitBounds(bounds);
@@ -163,7 +163,7 @@ export default function SearchPage() {
 
       {/* Leaflet Map */}
       <MapContainer
-        // center={[54.00355045322079, -8.964299261569979]} // Coordinates for Killasser Cemetery
+        center={[54.00355045322079, -8.964299261569979]} // Coordinates for Killasser Cemetery
         zoom={19}
         scrollWheelZoom={false}
         style={{ height: "500px", width: "100%" }}
@@ -174,73 +174,46 @@ export default function SearchPage() {
         />
 
         {/* Show only the matching graves */}
-        {highlightedGraves.length > 0
-          ? highlightedGraves
-              .filter((person) => person.lat && person.lng)
-              .map((person, index) => (
-                <Marker
-                  key={index}
-                  position={[parseFloat(person.lat), parseFloat(person.lng)]}
-                  icon={tombstoneIcon} // Always show the tombstone icon for matches
-                >
-                  <Popup>
-                    <div>
-                      <h5>{person.name}</h5>
-                      {/* Display formatted dates and age */}
-                      <p>
-                        <strong>Date of Birth:</strong> {formatDate(person.dob)}{" "}
-                        <br />
-                        <strong>Date of Death:</strong>{" "}
-                        {formatDate(person.deathdate)} <br />
-                        <strong>Age:</strong>{" "}
-                        {calculateAge(person.dob, person.deathdate)} <br />
-                        {person.googlemapurl && (
-                          <a
-                            href={person.googlemapurl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            View on Google Maps
-                          </a>
-                        )}
-                      </p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))
-          : graves
-              .filter((person) => person.lat && person.lng)
-              .map((person, index) => (
-                <Marker
-                  key={index}
-                  position={[parseFloat(person.lat), parseFloat(person.lng)]}
-                  icon={tombstoneIcon} // Show the tombstone icon for all graves when no search term
-                >
-                  <Popup>
-                    <div>
-                      <h5>{person.name}</h5>
-                      {/* Display formatted dates and age */}
-                      <p>
-                        <strong>Date of Birth:</strong> {formatDate(person.dob)}{" "}
-                        <br />
-                        <strong>Date of Death:</strong>{" "}
-                        {formatDate(person.deathdate)} <br />
-                        <strong>Age:</strong>{" "}
-                        {calculateAge(person.dob, person.deathdate)} <br />
-                        {person.googlemapurl && (
-                          <a
-                            href={person.googlemapurl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            View on Google Maps
-                          </a>
-                        )}
-                      </p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+        {gravesToShow
+          .filter((person) => person.lat && person.lng) // Ensure lat and lng exist
+          .map((person, index) => {
+            const lat = parseFloat(person.lat ?? "0");
+            const lng = parseFloat(person.lng ?? "0");
+
+            if (isNaN(lat) || isNaN(lng)) return null; // Skip if invalid coordinates
+
+            return (
+              <Marker
+                key={index}
+                position={[lat, lng]}
+                icon={tombstoneIcon} // Always show the tombstone icon for matches
+              >
+                <Popup>
+                  <div>
+                    <h5>{person.name}</h5>
+                    {/* Display formatted dates and age */}
+                    <p>
+                      <strong>Date of Birth:</strong> {formatDate(person.dob)}{" "}
+                      <br />
+                      <strong>Date of Death:</strong>{" "}
+                      {formatDate(person.deathdate)} <br />
+                      <strong>Age:</strong>{" "}
+                      {calculateAge(person.dob, person.deathdate)} <br />
+                      {person.googlemapurl && (
+                        <a
+                          href={person.googlemapurl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View on Google Maps
+                        </a>
+                      )}
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
 
         <ResetCenterView graves={gravesToShow} />
       </MapContainer>

@@ -104,7 +104,7 @@ export default function PersonPage({ params }: { params: { slug: string } }) {
     if (person) {
       const gravePosition = {
         lat: person.lat ? parseFloat(person.lat) : 0, // Fallback to 0 if lat is null
-        lng: person.long ? parseFloat(person.long) : 0, // Fallback to 0 if long is null
+        lng: person.lng ? parseFloat(person.lng) : 0, // Fallback to 0 if long is null
       };
 
       // Get walking directions from the server-side API route
@@ -128,7 +128,7 @@ export default function PersonPage({ params }: { params: { slug: string } }) {
     return <p>Person not found</p>; // Handle not found case
   }
 
-  const { name, lat, long } = person;
+  const { name, lat, lng } = person;
 
   return (
     <div>
@@ -138,15 +138,15 @@ export default function PersonPage({ params }: { params: { slug: string } }) {
           <MapContainer
             center={[
               lat ? parseFloat(lat) : 0, // Fallback to 0 if lat is null
-              long ? parseFloat(long) : 0, // Fallback to 0 if long is null
+              lng ? parseFloat(lng) : 0, // Fallback to 0 if long is null
             ]}
             zoom={19}
             style={{ height: "100%", width: "100%" }}
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {lat && long ? (
+            {lat && lng ? (
               <Marker
-                position={[parseFloat(lat), parseFloat(long)]}
+                position={[parseFloat(lat), parseFloat(lng)]}
                 icon={tombstoneIcon}
               />
             ) : (
