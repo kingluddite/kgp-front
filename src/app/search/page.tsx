@@ -1,74 +1,57 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap,
-  // useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import people, { Person } from "../../data/peopleData"; // Your people data
+import Link from "next/link"; // Import the Link component from Next.js
+import Image from "next/image"; // Import the Image component from Next.js
+import client from "../../lib/sanityClient"; // Import Sanity client
+import { Person } from "../../data/peopleData"; // Import the Person type
+import styles from "./SearchPage.module.css"; // Import your CSS module
 
 // Custom tombstone marker icon
 const tombstoneIcon = new L.Icon({
   iconUrl: "/images/tombstone.png", // Path to your custom tombstone icon
-  iconSize: [32, 37], // Adjust based on your icon's dimensions
-  iconAnchor: [16, 37], // Position of the icon anchor (where the point of the icon should be)
-  popupAnchor: [0, -37], // Position of the popup relative to the icon
+  iconSize: [32, 37],
+  iconAnchor: [16, 37],
+  popupAnchor: [0, -37],
   shadowUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-  shadowSize: [41, 41], // Optional, if you want the shadow under your custom icon
+  shadowSize: [41, 41],
 });
 
-// Custom highlighted icon (optional)
-const highlightedIcon = new L.Icon({
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png", // Example of a different icon for highlighted graves
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
-// Component to capture map drag/move and get current coordinates
-// function LocationMarker() {
-//   const [position, setPosition] = useState<L.LatLng | null>(null);
-//
-//   useMapEvents({
-//     dragend: (e) => {
-//       const map = e.target;
-//       const center = map.getCenter();
-//       setPosition(center);
-//       console.log("Current Center:", center); // Log the latitude and longitude when dragging ends
-//     },
-//     moveend: (e) => {
-//       const map = e.target;
-//       const center = map.getCenter();
-//       setPosition(center);
-//       console.log("Map Moved to:", center); // Log the latitude and longitude when the map is moved
-//     },
-//   });
-//
-//   return position === null ? null : (
-//     <Marker position={position} icon={tombstoneIcon}>
-//       <Popup>
-//         Map center: {position.lat.toFixed(5)}, {position.lng.toFixed(5)}
-//       </Popup>
-//     </Marker>
-//   );
-// }
 export default function SearchPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [highlightedGraves, setHighlightedGraves] = useState<Person[]>([]);
+  const [graves, setGraves] = useState<Person[]>([]); // State to store fetched data
 
   useEffect(() => {
-    if (people.length === 0) {
-      console.log("No people data available");
-    } else {
-      console.log("People data:", people);
-    }
-  }, []);
+    // Fetch the graves data from Sanity
+    const fetchData = async () => {
+      try {
+        const gravesData = await client.fetch(`
+          *[_type == "grave"]{
+            _id,
+            name,
+            nickname,
+            image,
+            lat,
+            lng,
+            googlemapurl,
+            town,
+            deathdate,
+            dob,
+            misc
+          }
+        `);
+        setGraves(gravesData);
+      } catch (error) {
+        console.error("Error fetching graves data from Sanity:", error);
+      }
+    };
+
+    fetchData();
+  }, []); // Fetch data on component mount
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const searchValue = e.target.value.toLowerCase();
@@ -78,11 +61,43 @@ export default function SearchPage() {
     if (searchValue === "") {
       setHighlightedGraves([]);
     } else {
-      const filteredResults = people.filter((person) =>
+      const filteredResults = graves.filter((person) =>
         person.name.toLowerCase().includes(searchValue),
       );
       setHighlightedGraves(filteredResults);
     }
+  };
+
+  // Helper function to calculate age from dob and deathdate
+  const calculateAge = (dob: string | null, deathdate: string | null) => {
+    if (!dob || !deathdate) return "Unknown";
+
+    const birthDate = new Date(dob);
+    const deathDate = new Date(deathdate);
+
+    let age = deathDate.getFullYear() - birthDate.getFullYear();
+    const monthDiff = deathDate.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && deathDate.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  };
+
+  // Helper function to format date to 'January 1st, 1900' format
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Unknown";
+
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).format(date);
   };
 
   // Helper component to adjust map view to show all markers
@@ -91,12 +106,14 @@ export default function SearchPage() {
 
     useEffect(() => {
       if (graves.length > 0) {
-        // Filter out any graves with invalid lat or lng
         const validGraves = graves.filter((grave) => grave.lat && grave.lng);
 
         if (validGraves.length > 0) {
           const bounds = L.latLngBounds(
-            validGraves.map((grave) => [grave.lat, grave.lng]),
+            validGraves.map((grave) => [
+              parseFloat(grave.lat),
+              parseFloat(grave.lng),
+            ]),
           );
           map.fitBounds(bounds);
         }
@@ -106,27 +123,48 @@ export default function SearchPage() {
     return null;
   }
 
+  // Determine which graves to display: only matching graves if search is active, otherwise show all
+  const gravesToShow =
+    highlightedGraves.length > 0 ? highlightedGraves : graves;
+
   return (
     <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>Search for a Grave</h1>
-
-      {/* Search Input */}
-      <input
-        type="text"
-        placeholder="Enter last name"
-        value={searchTerm}
-        onChange={handleSearch}
-        style={{
-          padding: "10px",
-          width: "300px",
-          marginBottom: "20px",
-        }}
-      />
+      {/* Container to hold image and title/search bar horizontally */}
+      <header className={styles.header}>
+        <div className={styles.imageContainer}>
+          <Link href="/" passHref>
+            <div style={{ cursor: "pointer" }}>
+              <Image
+                src="/images/killasser-cemetery.png"
+                alt="Killasser Cemetery"
+                width={100}
+                height={100}
+                priority
+              />
+            </div>
+          </Link>
+        </div>
+        <div className={styles.textContainer}>
+          <h1>Search for a Grave</h1>
+          {/* Search Input */}
+          <input
+            type="text"
+            placeholder="Enter Full Name"
+            value={searchTerm}
+            onChange={handleSearch}
+            style={{
+              padding: "10px",
+              width: "300px",
+              marginBottom: "20px",
+            }}
+          />
+        </div>
+      </header>
 
       {/* Leaflet Map */}
       <MapContainer
-        center={[54.00355045322079, -8.964299261569979]} // Coordinates for Killasser Cemetery
-        zoom={19} // Set the zoom level to 19 for close-up view
+        // center={[54.00355045322079, -8.964299261569979]} // Coordinates for Killasser Cemetery
+        zoom={19}
         scrollWheelZoom={false}
         style={{ height: "500px", width: "100%" }}
       >
@@ -135,37 +173,76 @@ export default function SearchPage() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {/* Add LocationMarker to track and display the current map center */}
-        {/* <LocationMarker /> */}
+        {/* Show only the matching graves */}
+        {highlightedGraves.length > 0
+          ? highlightedGraves
+              .filter((person) => person.lat && person.lng)
+              .map((person, index) => (
+                <Marker
+                  key={index}
+                  position={[parseFloat(person.lat), parseFloat(person.lng)]}
+                  icon={tombstoneIcon} // Always show the tombstone icon for matches
+                >
+                  <Popup>
+                    <div>
+                      <h5>{person.name}</h5>
+                      {/* Display formatted dates and age */}
+                      <p>
+                        <strong>Date of Birth:</strong> {formatDate(person.dob)}{" "}
+                        <br />
+                        <strong>Date of Death:</strong>{" "}
+                        {formatDate(person.deathdate)} <br />
+                        <strong>Age:</strong>{" "}
+                        {calculateAge(person.dob, person.deathdate)} <br />
+                        {person.googlemapurl && (
+                          <a
+                            href={person.googlemapurl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View on Google Maps
+                          </a>
+                        )}
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))
+          : graves
+              .filter((person) => person.lat && person.lng)
+              .map((person, index) => (
+                <Marker
+                  key={index}
+                  position={[parseFloat(person.lat), parseFloat(person.lng)]}
+                  icon={tombstoneIcon} // Show the tombstone icon for all graves when no search term
+                >
+                  <Popup>
+                    <div>
+                      <h5>{person.name}</h5>
+                      {/* Display formatted dates and age */}
+                      <p>
+                        <strong>Date of Birth:</strong> {formatDate(person.dob)}{" "}
+                        <br />
+                        <strong>Date of Death:</strong>{" "}
+                        {formatDate(person.deathdate)} <br />
+                        <strong>Age:</strong>{" "}
+                        {calculateAge(person.dob, person.deathdate)} <br />
+                        {person.googlemapurl && (
+                          <a
+                            href={person.googlemapurl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View on Google Maps
+                          </a>
+                        )}
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
 
-        {/* Markers for all graves */}
-        {people
-          .filter((person) => person.lat && person.lng) // Ensure lat and lng exist
-          .map((person, index) => {
-            const isHighlighted = highlightedGraves.includes(person);
-
-            return (
-              <Marker
-                key={index}
-                position={[person.lat, person.lng]}
-                icon={isHighlighted ? highlightedIcon : tombstoneIcon}
-              >
-                <Popup>
-                  <div>
-                    <h5>{person.name}</h5>
-                    <p>
-                      Location: [{person.lat}, {person.lng}]
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-
-        {/* Automatically adjust map view to fit all markers */}
-        <ResetCenterView
-          graves={highlightedGraves.length > 0 ? highlightedGraves : people}
-        />
+        <ResetCenterView graves={gravesToShow} />
       </MapContainer>
     </div>
   );

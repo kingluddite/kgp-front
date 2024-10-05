@@ -9,14 +9,17 @@ export default function HomePage() {
     <div className={styles.container}>
       {/* Header Section */}
       <header className={styles.header}>
-        <div className={styles.imageContainer}>
-          <Image
-            src="/images/killasser-cemetery.png" // Adjust image path as needed
-            alt="Killasser Cemetery"
-            width={300}
-            height={300}
-          />
-        </div>
+        <Link href="/" passHref>
+          <div className={styles.imageContainer} style={{ cursor: "pointer" }}>
+            <Image
+              src="/images/killasser-cemetery.png" // Adjust image path as needed
+              alt="Killasser Cemetery"
+              width={300}
+              height={300}
+              priority
+            />
+          </div>
+        </Link>
         <div className={styles.textContainer}>
           <h1 className={styles.heading}>Killasser Cemetery</h1>
           <p className={styles.description}>

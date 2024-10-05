@@ -2,6 +2,22 @@
   padding: 20px;
 }
 
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px; /* Adds some space between the image and the text container */
+  margin-bottom: 20px;
+}
+
+.imageContainer {
+  flex-shrink: 0; /* Ensures the image maintains its size */
+}
+
+.textContainer {
+  text-align: left;
+}
+
 .searchInput {
   padding: 10px;
   width: 300px;
