@@ -1,32 +1,52 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import Link from "next/link"; // Import the Link component from Next.js
-import Image from "next/image"; // Import the Image component from Next.js
-import client from "../../lib/sanityClient"; // Import Sanity client
-import { Person } from "../../data/peopleData"; // Import the Person type
-import styles from "./SearchPage.module.css"; // Import your CSS module
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import Image from "next/image";
+import client from "../../lib/sanityClient";
+import { Person } from "../../data/peopleData";
+import styles from "./SearchPage.module.css";
 
-// Custom tombstone marker icon
-const tombstoneIcon = new L.Icon({
-  iconUrl: "/images/tombstone.png", // Path to your custom tombstone icon
-  iconSize: [32, 37],
-  iconAnchor: [16, 37],
-  popupAnchor: [0, -37],
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-  shadowSize: [41, 41],
+// Dynamically import Leaflet components without SSR
+const MapContainer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.MapContainer),
+  { ssr: false },
+);
+const TileLayer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.TileLayer),
+  { ssr: false },
+);
+const Marker = dynamic(
+  () => import("react-leaflet").then((mod) => mod.Marker),
+  { ssr: false },
+);
+const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), {
+  ssr: false,
 });
+
+// Dynamically load Leaflet icon configuration (client-side only)
+let tombstoneIcon: L.Icon | null = null;
+if (typeof window !== "undefined") {
+  import("leaflet").then((L) => {
+    tombstoneIcon = new L.Icon({
+      iconUrl: "/images/tombstone.png",
+      iconSize: [32, 37],
+      iconAnchor: [16, 37],
+      popupAnchor: [0, -37],
+      shadowUrl:
+        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      shadowSize: [41, 41],
+    });
+  });
+}
 
 export default function SearchPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [highlightedGraves, setHighlightedGraves] = useState<Person[]>([]);
-  const [graves, setGraves] = useState<Person[]>([]); // State to store fetched data
+  const [graves, setGraves] = useState<Person[]>([]);
 
   useEffect(() => {
-    // Fetch the graves data from Sanity
     const fetchData = async () => {
       try {
         const gravesData = await client.fetch(`
@@ -51,13 +71,12 @@ export default function SearchPage() {
     };
 
     fetchData();
-  }, []); // Fetch data on component mount
+  }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const searchValue = e.target.value.toLowerCase();
     setSearchTerm(searchValue);
 
-    // Filter graves based on search input
     if (searchValue === "") {
       setHighlightedGraves([]);
     } else {
@@ -68,7 +87,6 @@ export default function SearchPage() {
     }
   };
 
-  // Helper function to calculate age from dob and deathdate
   const calculateAge = (dob: string | null, deathdate: string | null) => {
     if (!dob || !deathdate) return "Unknown";
 
@@ -88,7 +106,6 @@ export default function SearchPage() {
     return age;
   };
 
-  // Helper function to format date to 'January 1st, 1900' format
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Unknown";
 
@@ -100,36 +117,8 @@ export default function SearchPage() {
     }).format(date);
   };
 
-  // Helper component to adjust map view to show all markers
-  function ResetCenterView({ graves }: { graves: Person[] }) {
-    const map = useMap();
-
-    useEffect(() => {
-      if (graves.length > 0) {
-        const validGraves = graves.filter((grave) => grave.lat && grave.lng);
-
-        if (validGraves.length > 0) {
-          const bounds = L.latLngBounds(
-            validGraves.map((grave) => [
-              parseFloat(grave.lat ?? "0"),
-              parseFloat(grave.lng ?? "0"),
-            ]),
-          );
-          map.fitBounds(bounds);
-        }
-      }
-    }, [graves, map]);
-
-    return null;
-  }
-
-  // Determine which graves to display: only matching graves if search is active, otherwise show all
-  const gravesToShow =
-    highlightedGraves.length > 0 ? highlightedGraves : graves;
-
   return (
     <div style={{ textAlign: "center", padding: "20px" }}>
-      {/* Container to hold image and title/search bar horizontally */}
       <header className={styles.header}>
         <div className={styles.imageContainer}>
           <Link href="/" passHref>
@@ -146,7 +135,6 @@ export default function SearchPage() {
         </div>
         <div className={styles.textContainer}>
           <h1>Search for a Grave</h1>
-          {/* Search Input */}
           <input
             type="text"
             placeholder="Enter Full Name"
@@ -161,62 +149,99 @@ export default function SearchPage() {
         </div>
       </header>
 
-      {/* Leaflet Map */}
-      <MapContainer
-        center={[54.00355045322079, -8.964299261569979]} // Coordinates for Killasser Cemetery
-        zoom={19}
-        scrollWheelZoom={false}
-        style={{ height: "500px", width: "100%" }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+      {typeof window !== "undefined" && tombstoneIcon && (
+        <MapContainer
+          center={[54.00355045322079, -8.964299261569979]}
+          zoom={19}
+          scrollWheelZoom={false}
+          style={{ height: "500px", width: "100%" }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
 
-        {/* Show only the matching graves */}
-        {gravesToShow
-          .filter((person) => person.lat && person.lng) // Ensure lat and lng exist
-          .map((person, index) => {
-            const lat = parseFloat(person.lat ?? "0");
-            const lng = parseFloat(person.lng ?? "0");
+          {highlightedGraves.length > 0
+            ? highlightedGraves
+                .filter((person) => person.lat && person.lng)
+                .map((person, index) => {
+                  const lat = person.lat ? parseFloat(person.lat) : 0;
+                  const lng = person.lng ? parseFloat(person.lng) : 0;
 
-            if (isNaN(lat) || isNaN(lng)) return null; // Skip if invalid coordinates
+                  if (isNaN(lat) || isNaN(lng) || !tombstoneIcon) return null; // Ensure tombstoneIcon is defined
 
-            return (
-              <Marker
-                key={index}
-                position={[lat, lng]}
-                icon={tombstoneIcon} // Always show the tombstone icon for matches
-              >
-                <Popup>
-                  <div>
-                    <h5>{person.name}</h5>
-                    {/* Display formatted dates and age */}
-                    <p>
-                      <strong>Date of Birth:</strong> {formatDate(person.dob)}{" "}
-                      <br />
-                      <strong>Date of Death:</strong>{" "}
-                      {formatDate(person.deathdate)} <br />
-                      <strong>Age:</strong>{" "}
-                      {calculateAge(person.dob, person.deathdate)} <br />
-                      {person.googlemapurl && (
-                        <a
-                          href={person.googlemapurl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View on Google Maps
-                        </a>
-                      )}
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                  return (
+                    <Marker
+                      key={index}
+                      position={[lat, lng]}
+                      icon={tombstoneIcon} // Only pass icon if it's defined
+                    >
+                      <Popup>
+                        <div>
+                          <h5>{person.name}</h5>
+                          <p>
+                            <strong>Date of Birth:</strong>{" "}
+                            {formatDate(person.dob)} <br />
+                            <strong>Date of Death:</strong>{" "}
+                            {formatDate(person.deathdate)} <br />
+                            <strong>Age:</strong>{" "}
+                            {calculateAge(person.dob, person.deathdate)} <br />
+                            {person.googlemapurl && (
+                              <a
+                                href={person.googlemapurl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View on Google Maps
+                              </a>
+                            )}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })
+            : graves
+                .filter((person) => person.lat && person.lng)
+                .map((person, index) => {
+                  const lat = person.lat ? parseFloat(person.lat) : 0;
+                  const lng = person.lng ? parseFloat(person.lng) : 0;
 
-        <ResetCenterView graves={gravesToShow} />
-      </MapContainer>
+                  if (isNaN(lat) || isNaN(lng) || !tombstoneIcon) return null; // Ensure tombstoneIcon is defined
+
+                  return (
+                    <Marker
+                      key={index}
+                      position={[lat, lng]}
+                      icon={tombstoneIcon} // Only pass icon if it's defined
+                    >
+                      <Popup>
+                        <div>
+                          <h5>{person.name}</h5>
+                          <p>
+                            <strong>Date of Birth:</strong>{" "}
+                            {formatDate(person.dob)} <br />
+                            <strong>Date of Death:</strong>{" "}
+                            {formatDate(person.deathdate)} <br />
+                            <strong>Age:</strong>{" "}
+                            {calculateAge(person.dob, person.deathdate)} <br />
+                            {person.googlemapurl && (
+                              <a
+                                href={person.googlemapurl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View on Google Maps
+                              </a>
+                            )}
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+        </MapContainer>
+      )}
     </div>
   );
 }
